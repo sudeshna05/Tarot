@@ -282,6 +282,30 @@ a { color: var(--gold); }
   border-color: var(--gold-dim);
 }
 
+.btn-share-card {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold-dim);
+  font-family: var(--font-serif);
+  letter-spacing: 0.08em;
+}
+
+.btn-share-card:hover {
+  background: rgba(199,167,108,0.1);
+  border-color: var(--gold);
+}
+
+.btn-share-native {
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border-2);
+}
+
+.btn-share-native:hover {
+  color: var(--gold);
+  border-color: var(--gold-dim);
+}
+
 .btn-back {
   color: var(--text-2);
   font-size: 0.8rem;
@@ -907,7 +931,7 @@ a { color: var(--gold); }
 .share-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.75);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -918,21 +942,62 @@ a { color: var(--gold); }
 .share-modal-inner {
   background: var(--bg-2);
   border: 1px solid var(--border-2);
-  border-radius: 6px;
-  padding: var(--sp-6);
-  max-width: 480px;
+  border-radius: 10px;
+  padding: var(--sp-5) var(--sp-5) var(--sp-6);
+  max-width: 500px;
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
+  position: relative;
+  max-height: 92vh;
+  overflow-y: auto;
 }
 
-.share-modal-inner h4 {
+.share-modal-close {
+  position: absolute;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.share-modal-close:hover { color: var(--text); }
+
+.share-modal-title {
   font-family: var(--font-serif);
   font-weight: normal;
-  font-size: 1rem;
-  color: var(--text);
-  letter-spacing: 0.05em;
+  font-size: 1.1rem;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding-top: var(--sp-1);
+}
+
+.share-preview {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.share-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+.share-hint {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .share-text {

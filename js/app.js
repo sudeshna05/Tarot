@@ -416,8 +416,8 @@ const AUREN_APP = (() => {
         </div>
 
         <div class="results-actions">
-          <button class="btn btn-ghost" id="btn-share" aria-label="Share this reading">
-            Share Reading
+          <button class="btn btn-share-card" id="btn-share" aria-label="Share this reading">
+            ✦ Share This Reading
           </button>
           <button class="btn btn-primary" id="btn-again" aria-label="Begin a new reading">
             Begin a new reading
@@ -663,33 +663,220 @@ const AUREN_APP = (() => {
 
   // ─── Share ──────────────────────────────────────────────────────────────────
   function shareReading() {
-    const lines = ['AUREN — My Reading\n'];
-    state.drawnCards.forEach(dc => {
-      const pos = dc.position ? `${dc.position.name}: ` : '';
-      lines.push(`${pos}${dc.card.name} (${dc.orientation})`);
+    generateShareCard().then(dataUrl => {
+      showShareModal(dataUrl);
+    }).catch(() => {
+      // Canvas failed — fall back to text share
+      showShareModalText();
     });
-    lines.push('\nAUREN — Read Between the Signs');
-    const text = lines.join('\n');
-
-    const fallback = () => {
-      try {
-        navigator.clipboard.writeText(text).then(() => {
-          showShareModal('Copied to clipboard!', text);
-        }).catch(() => showShareModal('Copy this text:', text));
-      } catch(e) {
-        showShareModal('Copy this text:', text);
-      }
-    };
-
-    if (navigator.share) {
-      navigator.share({ title: 'My AUREN Reading', text })
-        .catch(() => fallback());
-    } else {
-      fallback();
-    }
   }
 
-  function showShareModal(title, text) {
+  function generateShareCard() {
+    return new Promise((resolve, reject) => {
+      const isDark = (document.documentElement.getAttribute('data-theme') || 'midnight') === 'midnight';
+      const W = 1080, H = 1080;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(); return; }
+
+      // Palette
+      const BG      = isDark ? '#0B0A0F' : '#F5F0E7';
+      const BG2     = isDark ? '#1A1128' : '#EDE5D8';
+      const GOLD    = isDark ? '#C7A76C' : '#A8874F';
+      const GOLD2   = isDark ? '#8A6E3E' : '#7A5E32';
+      const TEXT    = isDark ? '#EEE8DA' : '#242027';
+      const TEXT2   = isDark ? '#7186A8' : '#815B68';
+      const BORDER  = isDark ? '#3A2444' : '#C0B0A2';
+
+      // Background
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle inner border frame
+      ctx.strokeStyle = BORDER;
+      ctx.lineWidth = 2;
+      roundRect(ctx, 32, 32, W - 64, H - 64, 16);
+      ctx.stroke();
+
+      // Thin inner accent line
+      ctx.strokeStyle = GOLD2;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.4;
+      roundRect(ctx, 44, 44, W - 88, H - 88, 12);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // ── Header ──
+      ctx.fillStyle = GOLD;
+      ctx.font = 'bold 28px Georgia, serif';
+      ctx.letterSpacing = '8px';
+      ctx.textAlign = 'center';
+      ctx.fillText('✦  A U R E N', W / 2, 120);
+
+      ctx.fillStyle = TEXT2;
+      ctx.font = '16px system-ui, sans-serif';
+      ctx.letterSpacing = '3px';
+      ctx.fillText('YOUR READING', W / 2, 154);
+
+      // Divider
+      ctx.strokeStyle = GOLD2;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.moveTo(120, 176); ctx.lineTo(W - 120, 176); ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // ── Card images ──
+      const cards = state.drawnCards;
+      const CARD_W = 140, CARD_H = 244;
+      const maxCards = Math.min(cards.length, 5);
+      const totalCardsW = maxCards * CARD_W + (maxCards - 1) * 20;
+      const cardStartX = (W - totalCardsW) / 2;
+      const cardY = 210;
+
+      const loadPromises = cards.slice(0, maxCards).map((dc, i) => {
+        return new Promise(res => {
+          const img = new Image();
+          img.onload = () => res({ img, dc, i });
+          img.onerror = () => res({ img: null, dc, i });
+          img.src = `assets/cards/${dc.card.id}.jpg`;
+        });
+      });
+
+      Promise.all(loadPromises).then(results => {
+        results.forEach(({ img, dc, i }) => {
+          const x = cardStartX + i * (CARD_W + 20);
+          const y = cardY;
+
+          // Card shadow
+          ctx.shadowColor = isDark ? 'rgba(0,0,0,0.6)' : 'rgba(60,40,50,0.2)';
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetY = 6;
+
+          // Card bg
+          ctx.fillStyle = BG2;
+          roundRect(ctx, x, y, CARD_W, CARD_H, 8);
+          ctx.fill();
+          ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+          // Card border
+          ctx.strokeStyle = GOLD2;
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, x, y, CARD_W, CARD_H, 8);
+          ctx.stroke();
+
+          if (img) {
+            ctx.save();
+            roundRect(ctx, x, y, CARD_W, CARD_H, 8);
+            ctx.clip();
+            if (dc.orientation === 'reversed') {
+              ctx.translate(x + CARD_W / 2, y + CARD_H / 2);
+              ctx.rotate(Math.PI);
+              ctx.drawImage(img, -CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H);
+            } else {
+              ctx.drawImage(img, x, y, CARD_W, CARD_H);
+            }
+            ctx.restore();
+          }
+
+          // Position label above card
+          if (dc.position) {
+            ctx.fillStyle = TEXT2;
+            ctx.font = '13px system-ui, sans-serif';
+            ctx.letterSpacing = '2px';
+            ctx.textAlign = 'center';
+            ctx.fillText(dc.position.name.toUpperCase(), x + CARD_W / 2, cardY - 12);
+          }
+        });
+
+        // ── Card names ──
+        const namesY = cardY + CARD_H + 36;
+        ctx.textAlign = 'center';
+        const nameLines = cards.slice(0, maxCards).map(dc =>
+          dc.card.name + (dc.orientation === 'reversed' ? ' ↓' : '')
+        );
+
+        if (maxCards <= 3) {
+          ctx.fillStyle = TEXT;
+          ctx.font = '22px Georgia, serif';
+          ctx.letterSpacing = '1px';
+          ctx.fillText(nameLines.join('  ·  '), W / 2, namesY);
+        } else {
+          // Two lines for 4-5 cards
+          const mid = Math.ceil(maxCards / 2);
+          ctx.fillStyle = TEXT;
+          ctx.font = '18px Georgia, serif';
+          ctx.fillText(nameLines.slice(0, mid).join('  ·  '), W / 2, namesY);
+          ctx.fillText(nameLines.slice(mid).join('  ·  '), W / 2, namesY + 32);
+        }
+
+        // ── Synthesis quote ──
+        const quoteY = namesY + (maxCards <= 3 ? 60 : 90);
+        const synthesis = (state.reading && state.reading.synthesis && state.reading.synthesis[0]) || '';
+        if (synthesis) {
+          ctx.strokeStyle = GOLD2;
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = 0.4;
+          ctx.beginPath(); ctx.moveTo(120, quoteY - 20); ctx.lineTo(W - 120, quoteY - 20); ctx.stroke();
+          ctx.globalAlpha = 1;
+
+          ctx.fillStyle = TEXT2;
+          ctx.font = 'italic 20px Georgia, serif';
+          ctx.letterSpacing = '0px';
+          wrapText(ctx, `"${synthesis}"`, W / 2, quoteY, W - 200, 30);
+        }
+
+        // ── Footer ──
+        ctx.strokeStyle = GOLD2;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath(); ctx.moveTo(120, H - 90); ctx.lineTo(W - 120, H - 90); ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = GOLD;
+        ctx.font = '18px Georgia, serif';
+        ctx.letterSpacing = '4px';
+        ctx.textAlign = 'center';
+        ctx.fillText('aurentarot.pages.dev', W / 2, H - 56);
+
+        resolve(canvas.toDataURL('image/png'));
+      }).catch(reject);
+    });
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let currentY = y;
+    for (let i = 0; i < words.length; i++) {
+      const test = line + (line ? ' ' : '') + words[i];
+      if (ctx.measureText(test).width > maxWidth && line) {
+        ctx.fillText(line, x, currentY);
+        line = words[i];
+        currentY += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    if (line) ctx.fillText(line, x, currentY);
+  }
+
+  function showShareModal(dataUrl) {
     const existing = document.getElementById('share-modal');
     if (existing) existing.remove();
 
@@ -698,18 +885,94 @@ const AUREN_APP = (() => {
     modal.className = 'share-modal';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Share your reading');
+    modal.innerHTML = `
+      <div class="share-modal-inner">
+        <button class="share-modal-close" id="share-close-btn" aria-label="Close">✕</button>
+        <h4 class="share-modal-title">Share Your Reading</h4>
+        <img src="${dataUrl}" class="share-preview" alt="Your AUREN reading card" />
+        <div class="share-actions">
+          <button class="btn btn-primary" id="share-download-btn">↓ Save Image</button>
+          <button class="btn btn-share-native" id="share-native-btn">↗ Share</button>
+        </div>
+        <p class="share-hint">Save the image and share it anywhere — Instagram, WhatsApp, anywhere.</p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#share-close-btn').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    // Download
+    modal.querySelector('#share-download-btn').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'auren-reading.png';
+      a.click();
+    });
+
+    // Native share (image)
+    modal.querySelector('#share-native-btn').addEventListener('click', async () => {
+      try {
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], 'auren-reading.png', { type: 'image/png' });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'My AUREN Reading',
+            text: 'Read between the signs — aurentarot.pages.dev',
+            files: [file]
+          });
+        } else if (navigator.share) {
+          await navigator.share({
+            title: 'My AUREN Reading',
+            text: buildShareText(),
+            url: 'https://aurentarot.pages.dev'
+          });
+        } else {
+          // Last resort: copy URL
+          navigator.clipboard.writeText('https://aurentarot.pages.dev')
+            .then(() => alert('Link copied! Share your reading image manually.'))
+            .catch(() => {});
+        }
+      } catch(e) { /* user cancelled */ }
+    });
+  }
+
+  function showShareModalText() {
+    const existing = document.getElementById('share-modal');
+    if (existing) existing.remove();
+    const text = buildShareText();
+    const modal = document.createElement('div');
+    modal.id = 'share-modal';
+    modal.className = 'share-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-label', 'Share reading');
     modal.innerHTML = `
       <div class="share-modal-inner">
-        <h4>${title}</h4>
+        <button class="share-modal-close" id="share-close-btn" aria-label="Close">✕</button>
+        <h4 class="share-modal-title">Share Your Reading</h4>
         <textarea class="share-text" readonly rows="8">${text}</textarea>
-        <button class="btn btn-primary share-close" id="share-close-btn">Close</button>
+        <button class="btn btn-primary" id="share-copy-btn">Copy Text</button>
       </div>
     `;
     document.body.appendChild(modal);
     modal.querySelector('#share-close-btn').addEventListener('click', () => modal.remove());
-    modal.querySelector('.share-text').select();
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    modal.querySelector('#share-copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(text).catch(() => {});
+      modal.querySelector('#share-copy-btn').textContent = 'Copied!';
+    });
+  }
+
+  function buildShareText() {
+    const lines = ['✦ AUREN — My Reading\n'];
+    state.drawnCards.forEach(dc => {
+      const pos = dc.position ? `${dc.position.name}: ` : '';
+      lines.push(`${pos}${dc.card.name} (${dc.orientation})`);
+    });
+    lines.push('\naurentarot.pages.dev');
+    return lines.join('\n');
   }
 
   return { init };
