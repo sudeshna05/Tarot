@@ -43,7 +43,7 @@
 [data-theme="moonlit"] {
   --bg:           #F5F0E7;
   --bg-2:         #FBF8F2;
-  --bg-accent:    #4A394D;
+  --bg-accent:    #EDE3D4;
   --gold:         #A8874F;
   --gold-dim:     #7A5E32;
   --text:         #242027;
@@ -61,7 +61,7 @@
   :root:not([data-theme="midnight"]) {
     --bg:           #F5F0E7;
     --bg-2:         #FBF8F2;
-    --bg-accent:    #4A394D;
+    --bg-accent:    #EDE3D4;
     --gold:         #A8874F;
     --gold-dim:     #7A5E32;
     --text:         #242027;
