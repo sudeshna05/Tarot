@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# TODO: Replace YOUR-FINAL-DOMAIN with your actual domain before deployment
+Sitemap: https://YOUR-FINAL-DOMAIN/sitemap.xml

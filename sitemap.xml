@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AUREN Sitemap
+  TODO: Replace https://YOUR-FINAL-DOMAIN with your actual production domain before deployment.
+  Example: https://yourusername.github.io/Tarot  OR  https://yourdomain.com
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Core app -->
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Reading entry points -->
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/tarot-reading/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/daily-tarot/</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Educational content -->
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/tarot-spreads/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/tarot-card-meanings/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/major-arcana/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/minor-arcana/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <!-- Topic landing pages -->
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/love-tarot/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/career-tarot/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/money-tarot/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/relationships-tarot/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://YOUR-FINAL-DOMAIN/personal-growth-tarot/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+</urlset>
