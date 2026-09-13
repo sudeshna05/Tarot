@@ -1114,3 +1114,460 @@ a { color: var(--gold); }
     --card-h: 209px;
   }
 }
+
+/* ── Quick Readings ─────────────────────────────────────────────────────────── */
+.quick-readings-section {
+  margin-top: var(--sp-7);
+}
+
+.quick-readings-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: var(--sp-3);
+}
+
+.quick-readings-grid {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.quick-reading-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--border-2);
+  border-radius: 24px;
+  background: var(--bg-2);
+  font-size: 0.82rem;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+  transition: border-color var(--transition-fast), color var(--transition-fast),
+              background var(--transition-fast);
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.quick-reading-card:hover,
+.quick-reading-card:focus-visible {
+  border-color: var(--gold-dim);
+  color: var(--gold);
+  background: var(--bg-accent);
+  outline: none;
+}
+
+.quick-reading-icon {
+  font-size: 0.9rem;
+  color: var(--gold-dim);
+  font-style: normal;
+}
+
+.quick-reading-label {
+  font-family: var(--font-serif);
+  letter-spacing: 0.03em;
+}
+
+.btn-yesno {
+  font-family: var(--font-serif);
+  letter-spacing: 0.06em;
+}
+
+/* ── Question Input ──────────────────────────────────────────────────────────── */
+.view-question .view-header {
+  margin-bottom: var(--sp-5);
+}
+
+.question-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-width: 560px;
+}
+
+.question-input {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  transition: border-color var(--transition-fast);
+  resize: vertical;
+  min-height: 80px;
+}
+
+.question-input:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+  border-color: var(--gold-dim);
+}
+
+.question-input::placeholder {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.question-hint {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}
+
+.question-actions {
+  margin-top: var(--sp-5);
+  display: flex;
+  gap: var(--sp-3);
+}
+
+/* ── Ritual View ─────────────────────────────────────────────────────────────── */
+.view-ritual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 160px);
+}
+
+.ritual-inner {
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-6);
+  text-align: center;
+  padding: var(--sp-7) var(--sp-4);
+}
+
+.ritual-symbol {
+  font-size: 2.2rem;
+  color: var(--gold-dim);
+  opacity: 0.7;
+  letter-spacing: 0.15em;
+}
+
+.ritual-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  width: 100%;
+}
+
+.ritual-step {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+}
+
+.ritual-step-num {
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  color: var(--gold-dim);
+  font-family: var(--font-serif);
+  flex-shrink: 0;
+  min-width: 16px;
+  text-align: right;
+}
+
+.ritual-step-text {
+  font-family: var(--font-serif);
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
+  color: var(--text);
+  font-weight: normal;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.ritual-question {
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  padding: var(--sp-3) var(--sp-4);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  background: var(--bg-2);
+}
+
+.ritual-question-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+}
+
+.ritual-question-text {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: var(--text-2);
+  font-style: italic;
+  line-height: 1.5;
+  text-align: left;
+  word-break: break-word;
+}
+
+.ritual-cta {
+  min-width: 200px;
+}
+
+/* ── Quick Reading Label in Reading/Results ─────────────────────────────────── */
+.reading-quick-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-top: var(--sp-1);
+  margin-bottom: 0;
+}
+
+.results-quick-badge {
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: var(--sp-2);
+}
+
+/* ── Results Question ────────────────────────────────────────────────────────── */
+.results-question {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5);
+  border-left: 2px solid var(--gold-dim);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+}
+
+.results-question-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  display: block;
+}
+
+.results-question-text {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--text-2);
+  font-style: italic;
+  line-height: 1.6;
+  display: block;
+  word-break: break-word;
+}
+
+/* ── Reading at a Glance ─────────────────────────────────────────────────────── */
+.glance-block {
+  margin: var(--sp-7) 0;
+  padding: var(--sp-6);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  background: var(--bg-2);
+}
+
+.glance-title {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: normal;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: var(--sp-5);
+}
+
+.glance-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.glance-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
+  align-items: baseline;
+}
+
+.glance-row:last-child {
+  border-bottom: none;
+}
+
+.glance-row-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  flex-shrink: 0;
+}
+
+.glance-row-value {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+/* ── Yes / No View ──────────────────────────────────────────────────────────── */
+.view-yesno {
+  display: flex;
+  flex-direction: column;
+}
+
+.yesno-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-7);
+  min-height: calc(100vh - 260px);
+  text-align: center;
+}
+
+.yesno-prompt {
+  font-size: 1.4rem;
+  letter-spacing: 0.3em;
+  color: var(--gold-dim);
+  opacity: 0.7;
+}
+
+.yesno-pull {
+  min-width: 180px;
+  font-family: var(--font-serif);
+  letter-spacing: 0.1em;
+  font-size: 1rem;
+}
+
+/* Yes/No Result */
+.view-yesno-result {
+  display: flex;
+  flex-direction: column;
+}
+
+.yesno-result-inner {
+  display: grid;
+  grid-template-columns: var(--card-w) 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+  margin: var(--sp-5) 0;
+}
+
+.yesno-card-art {
+  width: var(--card-w);
+  height: var(--card-h);
+}
+
+.yesno-card-art.reversed {
+  transform: rotate(180deg);
+}
+
+.yesno-card-name {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  margin-bottom: var(--sp-1);
+}
+
+.yesno-orientation {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--sp-3);
+}
+
+.yesno-orientation.upright  { color: var(--gold); }
+.yesno-orientation.reversed { color: var(--text-2); }
+
+.yesno-verdict {
+  font-family: var(--font-serif);
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-weight: normal;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--sp-3);
+  line-height: 1.1;
+}
+
+.yesno-verdict-yes   { color: var(--gold); }
+.yesno-verdict-no    { color: var(--text-2); }
+.yesno-verdict-notyet{ color: var(--text-3); }
+
+.yesno-explanation {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--text);
+  margin-bottom: var(--sp-4);
+}
+
+.yesno-caveat {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.yesno-actions {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-5) 0 var(--sp-7);
+}
+
+/* ── Share modal: three-button layout ──────────────────────────────────────── */
+.share-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+.share-copy-link-btn {
+  grid-column: 1 / -1;
+}
+
+/* ── Responsive additions ───────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .quick-readings-grid {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .quick-reading-card {
+    font-size: 0.78rem;
+  }
+
+  .ritual-inner {
+    padding: var(--sp-5) var(--sp-3);
+    gap: var(--sp-5);
+  }
+
+  .ritual-step-text {
+    font-size: 1rem;
+  }
+
+  .glance-row {
+    grid-template-columns: 1fr;
+    gap: var(--sp-1);
+  }
+
+  .yesno-result-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .yesno-card-art {
+    margin: 0 auto;
+  }
+
+  .results-question {
+    padding: var(--sp-3) var(--sp-3);
+  }
+}
