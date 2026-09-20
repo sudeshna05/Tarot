@@ -660,8 +660,17 @@ const AUREN_APP = (() => {
           </button>
         </div>
 
+        <div class="support-block" aria-label="Support AUREN">
+          <p class="support-heading">Keep AUREN Free</p>
+          <p class="support-body">Enjoyed your reading? If it gave you a moment to reflect, you can support AUREN and help keep the experience free.</p>
+          <a href="https://ko-fi.com/aurentarot" class="btn btn-support" target="_blank" rel="noopener noreferrer" aria-label="Support AUREN on Ko-fi — opens in a new tab">
+            ♡ Support AUREN
+          </a>
+        </div>
+
         <footer class="site-footer">
           <p class="disclaimer">Tarot readings are intended for reflection and entertainment only. They are not a substitute for professional medical, legal, financial, or mental-health advice.</p>
+          <p class="footer-support-link"><a href="https://ko-fi.com/aurentarot" target="_blank" rel="noopener noreferrer" aria-label="Support AUREN on Ko-fi — opens in a new tab">Support AUREN</a></p>
         </footer>
       </section>
     `;
@@ -852,6 +861,19 @@ const AUREN_APP = (() => {
             Begin a Full Reading
           </button>
         </div>
+
+        <div class="support-block" aria-label="Support AUREN">
+          <p class="support-heading">Keep AUREN Free</p>
+          <p class="support-body">Enjoyed your card? If it gave you a moment to reflect, you can support AUREN and help keep the experience free.</p>
+          <a href="https://ko-fi.com/aurentarot" class="btn btn-support" target="_blank" rel="noopener noreferrer" aria-label="Support AUREN on Ko-fi — opens in a new tab">
+            ♡ Support AUREN
+          </a>
+        </div>
+
+        <footer class="site-footer">
+          <p class="disclaimer">Tarot readings are intended for reflection and entertainment only. They are not a substitute for professional medical, legal, financial, or mental-health advice.</p>
+          <p class="footer-support-link"><a href="https://ko-fi.com/aurentarot" target="_blank" rel="noopener noreferrer" aria-label="Support AUREN on Ko-fi — opens in a new tab">Support AUREN</a></p>
+        </footer>
       </section>
     `;
 
@@ -918,6 +940,19 @@ const AUREN_APP = (() => {
             Full Reading
           </button>
         </div>
+
+        <div class="support-block" aria-label="Support AUREN">
+          <p class="support-heading">Keep AUREN Free</p>
+          <p class="support-body">Enjoyed your card? If it gave you a moment to reflect, you can support AUREN and help keep the experience free.</p>
+          <a href="https://ko-fi.com/aurentarot" class="btn btn-support" target="_blank" rel="noopener noreferrer" aria-label="Support AUREN on Ko-fi — opens in a new tab">
+            ♡ Support AUREN
+          </a>
+        </div>
+
+        <footer class="site-footer">
+          <p class="disclaimer">Tarot readings are intended for reflection and entertainment only. They are not a substitute for professional medical, legal, financial, or mental-health advice.</p>
+          <p class="footer-support-link"><a href="https://ko-fi.com/aurentarot" target="_blank" rel="noopener noreferrer" aria-label="Support AUREN on Ko-fi — opens in a new tab">Support AUREN</a></p>
+        </footer>
       </section>
     `;
 
