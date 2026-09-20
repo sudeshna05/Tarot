@@ -75,14 +75,86 @@ const AUREN_APP = (() => {
     applyTheme(loadTheme());
     AUREN_DECK.validateDeck();
     renderStarField();
-    navigate('landing');
+
+    // Replace the initial browser history entry with landing state so
+    // forward navigation works correctly from the very first view.
+    history.replaceState(captureHistoryState('landing'), '', window.location.href);
+    navigate('landing', { pushHistory: false });
+
+    window.addEventListener('popstate', onPopState);
+
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
     document.getElementById('topbar-home').addEventListener('click', () => {
       state.sessionId++;
       state.question = '';
       state.quickReadingId = null;
-      navigate('landing');
+      // Replace so the logo tap doesn't leave a duplicate landing entry
+      history.replaceState(captureHistoryState('landing'), '', window.location.href);
+      navigate('landing', { pushHistory: false });
     });
+  }
+
+  // ─── History Helpers ─────────────────────────────────────────────────────────
+
+  // The views that deserve their own history entry (major screens only).
+  const HISTORY_VIEWS = new Set([
+    'landing', 'topic', 'question', 'spread', 'ritual',
+    'reading', 'results', 'daily', 'yesno', 'yesno-result'
+  ]);
+
+  function captureHistoryState(viewName) {
+    return {
+      view: viewName,
+      topic: state.topic,
+      question: state.question,
+      spreadId: state.spreadId,
+      quickReadingId: state.quickReadingId,
+      // Serialise cards as plain objects (Set/functions can't survive JSON)
+      drawnCards: state.drawnCards.map(dc => ({
+        card: dc.card,
+        orientation: dc.orientation,
+        position: dc.position,
+        interpretation: dc.interpretation,
+        revealed: dc.revealed
+      })),
+      reading: state.reading
+        ? { cards: state.reading.cards.map(c => ({
+              card: c.card,
+              orientation: c.orientation,
+              position: c.position,
+              interpretation: c.interpretation,
+              revealed: c.revealed
+            })),
+            synthesis: state.reading.synthesis }
+        : null,
+      yesnoCard: state.yesnoCard
+        ? { card: state.yesnoCard.card, orientation: state.yesnoCard.orientation, revealed: state.yesnoCard.revealed }
+        : null
+    };
+  }
+
+  function restoreHistoryState(saved) {
+    if (!saved) return;
+    state.topic          = saved.topic         || null;
+    state.question       = saved.question      || '';
+    state.spreadId       = saved.spreadId      || null;
+    state.quickReadingId = saved.quickReadingId|| null;
+    state.drawnCards     = saved.drawnCards    || [];
+    state.reading        = saved.reading       || null;
+    state.yesnoCard      = saved.yesnoCard     || null;
+    state.flipLocks      = new Set();
+  }
+
+  function onPopState(e) {
+    if (!e.state || !e.state.view) {
+      // No saved state — go to landing
+      state.sessionId++;
+      navigate('landing', { pushHistory: false });
+      return;
+    }
+    state.sessionId++;
+    restoreHistoryState(e.state);
+    navigate(e.state.view, { pushHistory: false });
   }
 
   // ─── Theme ──────────────────────────────────────────────────────────────────
@@ -126,7 +198,13 @@ const AUREN_APP = (() => {
 
   // ─── Navigation / View Engine ───────────────────────────────────────────────
   function navigate(viewName, opts) {
+    const shouldPush = !(opts && opts.pushHistory === false);
     state.view = viewName;
+
+    if (shouldPush && HISTORY_VIEWS.has(viewName)) {
+      history.pushState(captureHistoryState(viewName), '', window.location.href);
+    }
+
     const root = document.getElementById('app-root');
     if (!root) return;
 
@@ -232,7 +310,7 @@ const AUREN_APP = (() => {
       </section>
     `;
 
-    document.getElementById('btn-back-topic').addEventListener('click', () => navigate('landing'));
+    document.getElementById('btn-back-topic').addEventListener('click', () => history.back());
     root.querySelectorAll('.topic-chip').forEach(btn => {
       btn.addEventListener('click', () => {
         state.topic = btn.dataset.topic;
@@ -278,7 +356,7 @@ const AUREN_APP = (() => {
     const textarea = root.querySelector('#reading-question');
     if (state.question) textarea.value = state.question;
 
-    document.getElementById('btn-back-question').addEventListener('click', () => navigate(backTarget));
+    document.getElementById('btn-back-question').addEventListener('click', () => history.back());
     document.getElementById('btn-question-continue').addEventListener('click', () => {
       const raw = textarea.value.trim().slice(0, 250);
       state.question = raw;
@@ -323,7 +401,7 @@ const AUREN_APP = (() => {
       </section>
     `;
 
-    document.getElementById('btn-back-spread').addEventListener('click', () => navigate('question'));
+    document.getElementById('btn-back-spread').addEventListener('click', () => history.back());
     root.querySelectorAll('.spread-option').forEach(btn => {
       btn.addEventListener('click', () => {
         state.spreadId = parseInt(btn.dataset.spread, 10);
@@ -505,7 +583,9 @@ const AUREN_APP = (() => {
       state.sessionId++;
       state.question = '';
       state.quickReadingId = null;
-      navigate('landing');
+      // Start Over is a hard reset — replace the full history stack with a clean landing
+      history.replaceState(captureHistoryState('landing'), '', window.location.href);
+      navigate('landing', { pushHistory: false });
     });
   }
 
@@ -679,7 +759,8 @@ const AUREN_APP = (() => {
     root.querySelector('#btn-again').addEventListener('click', () => {
       state.question = '';
       state.quickReadingId = null;
-      navigate('landing');
+      history.replaceState(captureHistoryState('landing'), '', window.location.href);
+      navigate('landing', { pushHistory: false });
     });
   }
 
@@ -877,7 +958,7 @@ const AUREN_APP = (() => {
       </section>
     `;
 
-    root.querySelector('#btn-back-daily').addEventListener('click', () => navigate('landing'));
+    root.querySelector('#btn-back-daily').addEventListener('click', () => history.back());
     root.querySelector('#btn-full-reading').addEventListener('click', () => navigate('topic'));
   }
 
@@ -899,7 +980,7 @@ const AUREN_APP = (() => {
       </section>
     `;
 
-    root.querySelector('#btn-back-yesno').addEventListener('click', () => navigate('landing'));
+    root.querySelector('#btn-back-yesno').addEventListener('click', () => history.back());
     root.querySelector('#btn-yesno-pull').addEventListener('click', () => {
       const drawn = AUREN_DECK.drawCards(1);
       state.yesnoCard = { ...drawn[0], revealed: false };
@@ -956,7 +1037,7 @@ const AUREN_APP = (() => {
       </section>
     `;
 
-    root.querySelector('#btn-back-ynresult').addEventListener('click', () => navigate('yesno'));
+    root.querySelector('#btn-back-ynresult').addEventListener('click', () => history.back());
     root.querySelector('#btn-yesno-again').addEventListener('click', () => navigate('yesno'));
     root.querySelector('#btn-yesno-full').addEventListener('click', () => navigate('topic'));
   }
