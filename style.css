@@ -406,7 +406,7 @@ a { color: var(--gold); }
 /* ── Topic Select ───────────────────────────────────────────────────────────── */
 .topic-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--sp-3);
 }
 
@@ -420,7 +420,7 @@ a { color: var(--gold); }
   border-radius: 4px;
   background: var(--bg-2);
   text-align: left;
-  min-height: 80px;
+  min-height: 96px;
   transition: border-color var(--transition-fast), background var(--transition-fast),
               box-shadow var(--transition-fast);
 }
@@ -854,6 +854,167 @@ a { color: var(--gold); }
   justify-content: center;
   flex-wrap: wrap;
   padding: var(--sp-5) 0 var(--sp-7);
+}
+
+/* ── Welcome Overlay ────────────────────────────────────────────────────────── */
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.welcome-overlay--visible {
+  opacity: 1;
+}
+
+.welcome-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: 16px;
+  padding: var(--sp-7) var(--sp-6);
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  transform: translateY(16px);
+  transition: transform 0.4s ease;
+  box-shadow: 0 24px 64px var(--shadow);
+}
+
+.welcome-overlay--visible .welcome-card {
+  transform: translateY(0);
+}
+
+.welcome-symbol {
+  font-size: 1.8rem;
+  color: var(--gold);
+  margin-bottom: var(--sp-4);
+  display: block;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.welcome-title {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  margin-bottom: var(--sp-3);
+}
+
+.welcome-sub {
+  font-size: 0.88rem;
+  color: var(--text-2);
+  line-height: 1.7;
+  margin-bottom: var(--sp-5);
+}
+
+.welcome-how {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: var(--sp-4) var(--sp-5);
+  margin-bottom: var(--sp-5);
+  text-align: left;
+}
+
+.welcome-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.welcome-steps li {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  padding-left: var(--sp-4);
+  position: relative;
+}
+
+.welcome-steps li::before {
+  content: '✦';
+  position: absolute;
+  left: 0;
+  color: var(--gold-dim);
+  font-size: 0.6rem;
+  top: 4px;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.welcome-begin {
+  width: 100%;
+  max-width: 200px;
+}
+
+.welcome-how-toggle {
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+
+.welcome-how-toggle:hover {
+  color: var(--text-2);
+}
+
+/* ── Reading hint (onboarding) ──────────────────────────────────────────────── */
+.reading-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  justify-content: center;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: 24px;
+  margin: var(--sp-2) auto var(--sp-4);
+  max-width: 260px;
+  animation: fadeUp 0.4s ease;
+}
+
+.reading-hint-text {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+}
+
+.reading-hint-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.reading-hint-dismiss:hover {
+  color: var(--text);
+}
+
+/* ── Redraw button ──────────────────────────────────────────────────────────── */
+.btn-redraw {
+  font-size: 0.82rem;
+  padding: var(--sp-2) var(--sp-4);
+  opacity: 0.8;
+}
+
+.btn-redraw:hover {
+  opacity: 1;
 }
 
 /* ── Daily View ─────────────────────────────────────────────────────────────── */

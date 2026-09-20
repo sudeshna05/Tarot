@@ -85,6 +85,7 @@ const AUREN_APP = (() => {
     // forward navigation works correctly from the very first view.
     history.replaceState(captureHistoryState('landing'), '', window.location.href);
     navigate('landing', { pushHistory: false });
+    showWelcomeOverlay();
 
     window.addEventListener('popstate', onPopState);
 
@@ -590,6 +591,12 @@ const AUREN_APP = (() => {
             <button class="btn btn-primary" id="btn-see-results">See Your Reading</button>
           </div>
         ` : ''}
+        ${_shouldShowReadingHint() ? `
+          <div class="reading-hint" id="reading-hint" role="status" aria-live="polite">
+            <span class="reading-hint-text">Tap a card to reveal it</span>
+            <button class="reading-hint-dismiss" id="reading-hint-dismiss" aria-label="Dismiss tip">✕</button>
+          </div>
+        ` : ''}
         <div aria-live="polite" aria-atomic="true" class="sr-only" id="card-announce"></div>
       </section>
     `;
@@ -597,19 +604,121 @@ const AUREN_APP = (() => {
     attachReadingEvents(root);
   }
 
+  // ─── Welcome Overlay ────────────────────────────────────────────────────────
+  function _isFirstVisit() {
+    try { return !localStorage.getItem('auren-visited'); } catch(e) { return false; }
+  }
+
+  function _markVisited() {
+    try { localStorage.setItem('auren-visited', '1'); } catch(e) {}
+  }
+
+  function showWelcomeOverlay() {
+    if (!_isFirstVisit()) return;
+    _markVisited();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'welcome-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Welcome to AUREN');
+    overlay.innerHTML = `
+      <div class="welcome-card">
+        <div class="welcome-symbol" aria-hidden="true">✦</div>
+        <h2 class="welcome-title">Welcome to AUREN</h2>
+        <p class="welcome-sub">Free tarot readings — no login, no tracking, nothing stored anywhere but your own device.</p>
+        <div class="welcome-how" id="welcome-how" hidden>
+          <ul class="welcome-steps">
+            <li>Choose a topic and a spread</li>
+            <li>Tap each card to reveal it</li>
+            <li>Reflect on what surfaces</li>
+          </ul>
+        </div>
+        <div class="welcome-actions">
+          <button class="btn btn-primary welcome-begin" id="welcome-begin">Begin</button>
+          <button class="btn-text-link welcome-how-toggle" id="welcome-how-toggle" aria-expanded="false">How it works ↓</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Animate in
+    requestAnimationFrame(() => overlay.classList.add('welcome-overlay--visible'));
+
+    const dismiss = () => {
+      overlay.classList.remove('welcome-overlay--visible');
+      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+    };
+
+    overlay.querySelector('#welcome-begin').addEventListener('click', dismiss);
+
+    // Clicking outside the card also dismisses
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) dismiss();
+    });
+
+    overlay.querySelector('#welcome-how-toggle').addEventListener('click', (btn => {
+      const howEl = overlay.querySelector('#welcome-how');
+      const expanded = howEl.hidden === false;
+      howEl.hidden = expanded;
+      btn.setAttribute('aria-expanded', String(!expanded));
+      btn.textContent = expanded ? 'How it works ↓' : 'How it works ↑';
+    }).bind(null, overlay.querySelector('#welcome-how-toggle')));
+
+    // Trap focus inside overlay
+    overlay.querySelector('#welcome-begin').focus();
+  }
+
+  function _shouldShowReadingHint() {
+    try { return !localStorage.getItem('auren-hint-seen'); } catch(e) { return false; }
+  }
+
+  function _markReadingHintSeen() {
+    try { localStorage.setItem('auren-hint-seen', '1'); } catch(e) {}
+  }
+
   function attachReadingEvents(root) {
     const container = root.querySelector('#reading-cards-container');
     if (!container) return;
 
+    // Dismiss onboarding hint
+    const hintEl = root.querySelector('#reading-hint');
+    const hintDismiss = root.querySelector('#reading-hint-dismiss');
+    if (hintDismiss) {
+      hintDismiss.addEventListener('click', () => {
+        _markReadingHintSeen();
+        if (hintEl) hintEl.remove();
+      });
+    }
+
     container.querySelectorAll('[data-card-index]').forEach(el => {
       const idx = parseInt(el.dataset.cardIndex, 10);
+
+      // Click / keyboard flip
       const handler = (e) => {
         if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
         e.preventDefault();
+        if (hintEl) { _markReadingHintSeen(); hintEl.remove(); }
         flipCard(idx);
       };
       el.addEventListener('click', handler);
       el.addEventListener('keydown', handler);
+
+      // Swipe-up to reveal (touch)
+      let touchStartY = null;
+      el.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      el.addEventListener('touchend', (e) => {
+        if (touchStartY === null) return;
+        const dy = touchStartY - e.changedTouches[0].clientY;
+        touchStartY = null;
+        if (dy >= 30) {
+          if (hintEl) { _markReadingHintSeen(); hintEl.remove(); }
+          flipCard(idx);
+        }
+      }, { passive: true });
     });
 
     const seeResultsBtn = root.querySelector('#btn-see-results');
@@ -775,6 +884,9 @@ const AUREN_APP = (() => {
           <button class="btn btn-primary" id="btn-again" aria-label="Begin a new reading">
             Begin a new reading
           </button>
+          <button class="btn btn-ghost btn-redraw" id="btn-redraw" aria-label="Redraw cards for the same question">
+            ↺ Redraw Cards
+          </button>
         </div>
 
         <div class="save-reading-block" id="save-reading-block">
@@ -815,6 +927,10 @@ const AUREN_APP = (() => {
       state.quickReadingId = null;
       history.replaceState(captureHistoryState('landing'), '', window.location.href);
       navigate('landing', { pushHistory: false });
+    });
+    root.querySelector('#btn-redraw').addEventListener('click', () => {
+      state.savedReadingId = null;
+      beginReading();
     });
 
     // Save Reading
