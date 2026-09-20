@@ -7,7 +7,7 @@ const AUREN_APP = (() => {
 
   // ─── State ──────────────────────────────────────────────────────────────────
   let state = {
-    view: 'landing',          // 'landing' | 'topic' | 'question' | 'spread' | 'ritual' | 'reading' | 'results' | 'daily' | 'yesno' | 'yesno-result'
+    view: 'landing',          // 'landing' | 'topic' | 'question' | 'spread' | 'ritual' | 'reading' | 'results' | 'daily' | 'yesno' | 'yesno-result' | 'history' | 'daily-history' | 'daily-card-detail'
     topic: null,              // 'general'|'love'|'career'|'money'|'relationships'|'growth'|'none'
     question: '',             // optional user question (sanitized on display)
     spreadId: null,           // 1|3|5|7|9
@@ -15,6 +15,8 @@ const AUREN_APP = (() => {
     drawnCards: [],           // [{card, orientation, position, interpretation, revealed}]
     reading: null,            // {cards, synthesis}
     yesnoCard: null,          // {card, orientation, revealed}
+    savedReadingId: null,     // id of the saved reading being viewed from history
+    viewingDailyDate: null,   // YYYY-MM-DD string when viewing a past daily card
     sessionId: 0,             // incremented per reading to prevent stale callbacks
     flipLocks: new Set(),     // card indices currently animating
     reducedMotion: false
@@ -99,7 +101,8 @@ const AUREN_APP = (() => {
   // The views that deserve their own history entry (major screens only).
   const HISTORY_VIEWS = new Set([
     'landing', 'topic', 'question', 'spread', 'ritual',
-    'reading', 'results', 'daily', 'yesno', 'yesno-result'
+    'reading', 'results', 'daily', 'yesno', 'yesno-result',
+    'history', 'daily-history', 'daily-card-detail'
   ]);
 
   function captureHistoryState(viewName) {
@@ -109,6 +112,8 @@ const AUREN_APP = (() => {
       question: state.question,
       spreadId: state.spreadId,
       quickReadingId: state.quickReadingId,
+      savedReadingId: state.savedReadingId,
+      viewingDailyDate: state.viewingDailyDate,
       // Serialise cards as plain objects (Set/functions can't survive JSON)
       drawnCards: state.drawnCards.map(dc => ({
         card: dc.card,
@@ -135,14 +140,16 @@ const AUREN_APP = (() => {
 
   function restoreHistoryState(saved) {
     if (!saved) return;
-    state.topic          = saved.topic         || null;
-    state.question       = saved.question      || '';
-    state.spreadId       = saved.spreadId      || null;
-    state.quickReadingId = saved.quickReadingId|| null;
-    state.drawnCards     = saved.drawnCards    || [];
-    state.reading        = saved.reading       || null;
-    state.yesnoCard      = saved.yesnoCard     || null;
-    state.flipLocks      = new Set();
+    state.topic             = saved.topic            || null;
+    state.question          = saved.question         || '';
+    state.spreadId          = saved.spreadId         || null;
+    state.quickReadingId    = saved.quickReadingId   || null;
+    state.drawnCards        = saved.drawnCards       || [];
+    state.reading           = saved.reading          || null;
+    state.yesnoCard         = saved.yesnoCard        || null;
+    state.savedReadingId    = saved.savedReadingId   || null;
+    state.viewingDailyDate  = saved.viewingDailyDate || null;
+    state.flipLocks         = new Set();
   }
 
   function onPopState(e) {
@@ -219,10 +226,13 @@ const AUREN_APP = (() => {
         case 'ritual':       renderRitual(root); break;
         case 'reading':      renderReading(root); break;
         case 'results':      renderResults(root); break;
-        case 'daily':        renderDaily(root); break;
-        case 'yesno':        renderYesNo(root); break;
-        case 'yesno-result': renderYesNoResult(root); break;
-        default:             renderLanding(root);
+        case 'daily':            renderDaily(root); break;
+        case 'yesno':            renderYesNo(root); break;
+        case 'yesno-result':     renderYesNoResult(root); break;
+        case 'history':          renderHistory(root); break;
+        case 'daily-history':    renderDailyHistory(root); break;
+        case 'daily-card-detail':renderDailyCardDetail(root); break;
+        default:                 renderLanding(root);
       }
       root.classList.remove('view-transitioning');
     };
@@ -269,12 +279,20 @@ const AUREN_APP = (() => {
               ${quickCards}
             </div>
           </div>
+
+          <div class="landing-history-row">
+            <button class="btn-text-link" id="btn-your-readings" aria-label="View your saved readings">Your Readings</button>
+            <span class="landing-history-sep">·</span>
+            <button class="btn-text-link" id="btn-daily-history" aria-label="View previous daily cards">Previous Cards</button>
+          </div>
         </div>
       </section>
     `;
     document.getElementById('btn-begin').addEventListener('click', () => navigate('topic'));
     document.getElementById('btn-daily').addEventListener('click', () => navigate('daily'));
     document.getElementById('btn-yesno').addEventListener('click', () => navigate('yesno'));
+    document.getElementById('btn-your-readings').addEventListener('click', () => navigate('history'));
+    document.getElementById('btn-daily-history').addEventListener('click', () => navigate('daily-history'));
     root.querySelectorAll('.quick-reading-card').forEach(btn => {
       btn.addEventListener('click', () => {
         const qr = QUICK_READINGS.find(q => q.id === btn.dataset.quick);
@@ -740,6 +758,23 @@ const AUREN_APP = (() => {
           </button>
         </div>
 
+        <div class="save-reading-block" id="save-reading-block">
+          <button class="btn btn-ghost btn-save-reading" id="btn-save-reading" aria-label="Save this reading">
+            ♡ Save This Reading
+          </button>
+          <p class="save-reading-note" id="save-reading-note"></p>
+        </div>
+
+        <div class="reflection-block" id="reflection-block">
+          <label class="reflection-label" for="reflection-textarea">Reflection</label>
+          <p class="reflection-hint">How does this reading sit with you? This stays private on your device.</p>
+          <textarea class="reflection-textarea" id="reflection-textarea" rows="4" placeholder="Write your thoughts here…" aria-label="Personal reflection on this reading"></textarea>
+          <div class="reflection-actions">
+            <button class="btn btn-ghost btn-save-reflection" id="btn-save-reflection" aria-label="Save reflection">Save Reflection</button>
+            <span class="reflection-saved-msg" id="reflection-saved-msg" aria-live="polite"></span>
+          </div>
+        </div>
+
         <div class="support-block" aria-label="Support AUREN">
           <p class="support-heading">Keep AUREN Free</p>
           <p class="support-body">Enjoyed your reading? If it gave you a moment to reflect, you can support AUREN and help keep the experience free.</p>
@@ -761,6 +796,72 @@ const AUREN_APP = (() => {
       state.quickReadingId = null;
       history.replaceState(captureHistoryState('landing'), '', window.location.href);
       navigate('landing', { pushHistory: false });
+    });
+
+    // Save Reading
+    const saveBtn  = root.querySelector('#btn-save-reading');
+    const saveNote = root.querySelector('#save-reading-note');
+    const reflectionBlock = root.querySelector('#reflection-block');
+
+    function _buildSaveObj() {
+      const qr = state.quickReadingId ? QUICK_READINGS.find(q => q.id === state.quickReadingId) : null;
+      const spread = state.spreadId ? AUREN_SPREADS.getSpread(state.spreadId) : null;
+      return {
+        topic:          state.topic,
+        question:       state.question,
+        spreadId:       state.spreadId,
+        quickReadingId: state.quickReadingId,
+        spreadName:     qr ? qr.label : (spread ? spread.name : state.spreadId ? String(state.spreadId) + ' cards' : ''),
+        cards:          state.drawnCards,
+        synthesis:      state.reading ? state.reading.synthesis : [],
+        reflection:     ''
+      };
+    }
+
+    if (state.savedReadingId) {
+      saveBtn.textContent = '✓ Saved';
+      saveBtn.disabled = true;
+      reflectionBlock.classList.add('reflection-block--active');
+      const existingReflection = AUREN_STORE.getReading(state.savedReadingId);
+      if (existingReflection && existingReflection.reflection) {
+        root.querySelector('#reflection-textarea').value = existingReflection.reflection;
+      }
+    }
+
+    saveBtn.addEventListener('click', () => {
+      const result = AUREN_STORE.saveReading(_buildSaveObj());
+      if (result.ok) {
+        state.savedReadingId = result.id;
+        saveBtn.textContent = '✓ Saved';
+        saveBtn.disabled = true;
+        saveNote.textContent = '';
+        reflectionBlock.classList.add('reflection-block--active');
+      } else if (result.error === 'duplicate') {
+        saveNote.textContent = 'Already saved today.';
+      } else {
+        saveNote.textContent = 'Could not save — storage may be full.';
+      }
+    });
+
+    // Reflection
+    const reflectionTextarea = root.querySelector('#reflection-textarea');
+    const reflectionSaveBtn  = root.querySelector('#btn-save-reflection');
+    const reflectionSavedMsg = root.querySelector('#reflection-saved-msg');
+
+    reflectionSaveBtn.addEventListener('click', () => {
+      if (!state.savedReadingId) {
+        const result = AUREN_STORE.saveReading(_buildSaveObj());
+        if (result.ok) {
+          state.savedReadingId = result.id;
+          saveBtn.textContent = '✓ Saved';
+          saveBtn.disabled = true;
+        }
+      }
+      if (state.savedReadingId) {
+        AUREN_STORE.saveReadingReflection(state.savedReadingId, reflectionTextarea.value);
+        reflectionSavedMsg.textContent = 'Saved.';
+        setTimeout(() => { reflectionSavedMsg.textContent = ''; }, 2000);
+      }
     });
   }
 
@@ -937,10 +1038,21 @@ const AUREN_APP = (() => {
             <p class="daily-return">Come back tomorrow for a new card.</p>
           </div>
         </div>
+        <div class="daily-reflection-block">
+          <label class="reflection-label" for="daily-reflection-textarea">Reflection</label>
+          <p class="reflection-hint">A note for yourself. Private, stays on your device.</p>
+          <textarea class="reflection-textarea" id="daily-reflection-textarea" rows="3" placeholder="What does this card stir in you today?" aria-label="Reflection on today's card"></textarea>
+          <div class="reflection-actions">
+            <button class="btn btn-ghost btn-save-reflection" id="btn-save-daily-reflection" aria-label="Save daily reflection">Save</button>
+            <span class="reflection-saved-msg" id="daily-reflection-saved-msg" aria-live="polite"></span>
+          </div>
+        </div>
+
         <div class="daily-actions">
           <button class="btn btn-primary" id="btn-full-reading" aria-label="Begin a full reading">
             Begin a Full Reading
           </button>
+          <button class="btn-text-link" id="btn-prev-cards" aria-label="View previous daily cards">Previous Cards →</button>
         </div>
 
         <div class="support-block" aria-label="Support AUREN">
@@ -960,6 +1072,21 @@ const AUREN_APP = (() => {
 
     root.querySelector('#btn-back-daily').addEventListener('click', () => history.back());
     root.querySelector('#btn-full-reading').addEventListener('click', () => navigate('topic'));
+    root.querySelector('#btn-prev-cards').addEventListener('click', () => navigate('daily-history'));
+
+    // Daily reflection — load existing then save on button
+    const dailyRefTextarea = root.querySelector('#daily-reflection-textarea');
+    const dailyRefSaveBtn  = root.querySelector('#btn-save-daily-reflection');
+    const dailyRefSavedMsg = root.querySelector('#daily-reflection-saved-msg');
+
+    const existingDailyRef = AUREN_STORE.getDailyReflection(dateStr);
+    if (existingDailyRef) dailyRefTextarea.value = existingDailyRef;
+
+    dailyRefSaveBtn.addEventListener('click', () => {
+      AUREN_STORE.saveDailyReflection(dateStr, dailyRefTextarea.value);
+      dailyRefSavedMsg.textContent = 'Saved.';
+      setTimeout(() => { dailyRefSavedMsg.textContent = ''; }, 2000);
+    });
   }
 
   // ─── Yes / No Reading ───────────────────────────────────────────────────────
@@ -1296,6 +1423,276 @@ const AUREN_APP = (() => {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  // ─── Reading History ────────────────────────────────────────────────────────
+  function renderHistory(root) {
+    const readings = AUREN_STORE.getReadings();
+
+    function _formatDate(ts) {
+      const d = new Date(ts);
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+
+    function _groupByDate(rds) {
+      const groups = {};
+      rds.forEach(r => {
+        const d = new Date(r.savedAt);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(r);
+      });
+      return groups;
+    }
+
+    const groups = _groupByDate(readings);
+    const dateKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+    const listHtml = readings.length === 0
+      ? `<p class="history-empty">No saved readings yet. After a reading, tap "Save This Reading" to keep it here.</p>`
+      : dateKeys.map(dateKey => {
+          const items = groups[dateKey].map(r => {
+            const cardNames = r.cards.slice(0, 3).map(dc => dc.card.name).join(', ');
+            const more = r.cards.length > 3 ? ` +${r.cards.length - 3}` : '';
+            const hasReflection = r.reflection && r.reflection.trim();
+            return `
+              <div class="history-item" data-reading-id="${escapeHtml(r.id)}">
+                <div class="history-item-body">
+                  <div class="history-item-spread">${escapeHtml(r.spreadName || (r.cardCount + '-card reading'))}</div>
+                  <div class="history-item-cards">${escapeHtml(cardNames)}${more}</div>
+                  ${r.question ? `<div class="history-item-question">"${escapeHtml(r.question)}"</div>` : ''}
+                  ${hasReflection ? `<div class="history-item-reflection-indicator" aria-label="Has reflection">✎</div>` : ''}
+                </div>
+                <div class="history-item-actions">
+                  <button class="btn-text-link history-open-btn" data-id="${escapeHtml(r.id)}" aria-label="Open this reading">Open</button>
+                  <button class="btn-text-link history-delete-btn" data-id="${escapeHtml(r.id)}" aria-label="Delete this reading">Delete</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+          return `
+            <div class="history-date-group">
+              <h3 class="history-date-header">${escapeHtml(_formatDate(groups[dateKey][0].savedAt))}</h3>
+              ${items}
+            </div>
+          `;
+        }).join('');
+
+    root.innerHTML = `
+      <section class="view-history" aria-label="Your saved readings">
+        <div class="view-header">
+          <button class="btn-back" id="btn-back-history" aria-label="Go back">← Back</button>
+          <h2 class="view-title">Your Readings</h2>
+          <p class="view-sub">Saved on this device only.</p>
+        </div>
+        <div class="history-list">
+          ${listHtml}
+        </div>
+        ${readings.length > 0 ? `
+          <div class="history-footer-actions">
+            <button class="btn-text-link history-clear-btn" id="btn-clear-all" aria-label="Clear all saved readings">Clear All</button>
+          </div>
+        ` : ''}
+      </section>
+    `;
+
+    root.querySelector('#btn-back-history').addEventListener('click', () => history.back());
+
+    root.querySelectorAll('.history-open-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = AUREN_STORE.getReading(btn.dataset.id);
+        if (!r) return;
+        state.savedReadingId    = r.id;
+        state.topic             = r.topic;
+        state.question          = r.question || '';
+        state.spreadId          = r.spreadId;
+        state.quickReadingId    = r.quickReadingId;
+        state.drawnCards        = r.cards;
+        state.reading           = { cards: r.cards, synthesis: r.synthesis };
+        navigate('results');
+      });
+    });
+
+    root.querySelectorAll('.history-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.history-item');
+        if (!item) return;
+        const confirmEl = item.querySelector('.history-delete-confirm');
+        if (confirmEl) {
+          confirmEl.remove();
+          return;
+        }
+        const conf = document.createElement('div');
+        conf.className = 'history-delete-confirm';
+        conf.innerHTML = `
+          <span class="history-delete-confirm-text">Delete this reading?</span>
+          <button class="btn-text-link history-delete-yes" data-id="${escapeHtml(btn.dataset.id)}">Yes, delete</button>
+          <button class="btn-text-link history-delete-no">Cancel</button>
+        `;
+        item.appendChild(conf);
+        conf.querySelector('.history-delete-yes').addEventListener('click', () => {
+          AUREN_STORE.deleteReading(btn.dataset.id);
+          const group = item.closest('.history-date-group');
+          item.remove();
+          if (group && !group.querySelector('.history-item')) group.remove();
+          if (!root.querySelector('.history-item')) {
+            root.querySelector('.history-list').innerHTML =
+              `<p class="history-empty">No saved readings yet. After a reading, tap "Save This Reading" to keep it here.</p>`;
+            const clearRow = root.querySelector('.history-footer-actions');
+            if (clearRow) clearRow.remove();
+          }
+        });
+        conf.querySelector('.history-delete-no').addEventListener('click', () => conf.remove());
+      });
+    });
+
+    const clearAllBtn = root.querySelector('#btn-clear-all');
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener('click', () => {
+        const existingConf = root.querySelector('.history-clear-confirm');
+        if (existingConf) { existingConf.remove(); return; }
+        const conf = document.createElement('div');
+        conf.className = 'history-clear-confirm';
+        conf.innerHTML = `
+          <span class="history-delete-confirm-text">Delete all saved readings?</span>
+          <button class="btn-text-link" id="confirm-clear-yes">Yes, clear all</button>
+          <button class="btn-text-link" id="confirm-clear-no">Cancel</button>
+        `;
+        clearAllBtn.parentNode.insertBefore(conf, clearAllBtn);
+        conf.querySelector('#confirm-clear-yes').addEventListener('click', () => {
+          AUREN_STORE.clearReadings();
+          navigate('history', { pushHistory: false });
+        });
+        conf.querySelector('#confirm-clear-no').addEventListener('click', () => conf.remove());
+      });
+    }
+  }
+
+  // ─── Daily Card History ──────────────────────────────────────────────────────
+  function renderDailyHistory(root) {
+    const reflections = AUREN_STORE.getDailyReflections();
+    const today = new Date();
+
+    function _dateStr(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function _displayDate(dateStr) {
+      const [y, m, d] = dateStr.split('-');
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      return `${months[parseInt(m,10)-1]} ${parseInt(d,10)}, ${y}`;
+    }
+
+    const days = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      days.push(_dateStr(d));
+    }
+
+    const itemsHtml = days.map(ds => {
+      const { card, orientation } = AUREN_DECK.getDailyCard(ds);
+      const hasReflection = !!reflections[ds];
+      const isToday = ds === _dateStr(today);
+      return `
+        <button class="daily-history-item" data-date="${escapeHtml(ds)}" aria-label="${escapeHtml(card.name)} — ${escapeHtml(ds)}">
+          <div class="daily-history-card-art ${orientation === 'reversed' ? 'reversed' : ''}">
+            ${renderCardFront(card, orientation)}
+          </div>
+          <div class="daily-history-item-body">
+            <div class="daily-history-item-date">${isToday ? 'Today' : escapeHtml(_displayDate(ds))}</div>
+            <div class="daily-history-item-name">${escapeHtml(card.name)}</div>
+            <div class="daily-history-item-orient ${orientation}">${orientation === 'upright' ? '↑ Upright' : '↓ Reversed'}</div>
+            ${hasReflection ? `<div class="daily-history-reflection-dot" aria-label="Has reflection">✎</div>` : ''}
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    root.innerHTML = `
+      <section class="view-daily-history" aria-label="Previous daily cards">
+        <div class="view-header">
+          <button class="btn-back" id="btn-back-dhistory" aria-label="Go back">← Back</button>
+          <h2 class="view-title">Previous Cards</h2>
+          <p class="view-sub">Your last 30 days.</p>
+        </div>
+        <div class="daily-history-grid">
+          ${itemsHtml}
+        </div>
+      </section>
+    `;
+
+    root.querySelector('#btn-back-dhistory').addEventListener('click', () => history.back());
+
+    root.querySelectorAll('.daily-history-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.viewingDailyDate = btn.dataset.date;
+        navigate('daily-card-detail');
+      });
+    });
+  }
+
+  function renderDailyCardDetail(root) {
+    const dateStr = state.viewingDailyDate || AUREN_DECK.todayString();
+    const { card, orientation } = AUREN_DECK.getDailyCard(dateStr);
+    const keywords = card[orientation === 'upright' ? 'uprightKeywords' : 'reversedKeywords'];
+    const interp = card[orientation]['general'];
+
+    const [y, m, d] = dateStr.split('-');
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const displayDate = `${monthNames[parseInt(m,10)-1]} ${parseInt(d,10)}, ${y}`;
+
+    root.innerHTML = `
+      <section class="view-daily" aria-label="Daily card detail">
+        <div class="view-header">
+          <button class="btn-back" id="btn-back-dcdetail" aria-label="Go back">← Back</button>
+          <h2 class="view-title">Daily Card</h2>
+          <p class="view-sub">${escapeHtml(displayDate)}</p>
+        </div>
+        <div class="daily-inner">
+          <div class="daily-card-art ${orientation === 'reversed' ? 'reversed' : ''}">
+            ${renderCardFront(card, orientation)}
+          </div>
+          <div class="daily-card-body">
+            <h3 class="daily-card-name">${escapeHtml(card.name)}</h3>
+            <div class="daily-orientation ${orientation}">${orientation === 'upright' ? '↑ Upright' : '↓ Reversed'}</div>
+            <div class="daily-keywords">${escapeHtml(keywords.join(' · '))}</div>
+            <p class="daily-interpretation">${escapeHtml(interp)}</p>
+          </div>
+        </div>
+        <div class="daily-reflection-block">
+          <label class="reflection-label" for="dcdetail-reflection-textarea">Reflection</label>
+          <p class="reflection-hint">A note from that day. Private, stays on your device.</p>
+          <textarea class="reflection-textarea" id="dcdetail-reflection-textarea" rows="3" placeholder="What did this card mean to you?" aria-label="Reflection on this card"></textarea>
+          <div class="reflection-actions">
+            <button class="btn btn-ghost btn-save-reflection" id="btn-save-dcdetail-reflection" aria-label="Save reflection">Save</button>
+            <span class="reflection-saved-msg" id="dcdetail-reflection-saved-msg" aria-live="polite"></span>
+          </div>
+        </div>
+        <footer class="site-footer">
+          <p class="disclaimer">Tarot readings are intended for reflection and entertainment only. They are not a substitute for professional medical, legal, financial, or mental-health advice.</p>
+        </footer>
+      </section>
+    `;
+
+    root.querySelector('#btn-back-dcdetail').addEventListener('click', () => history.back());
+
+    const textarea = root.querySelector('#dcdetail-reflection-textarea');
+    const saveBtn  = root.querySelector('#btn-save-dcdetail-reflection');
+    const savedMsg = root.querySelector('#dcdetail-reflection-saved-msg');
+
+    const existing = AUREN_STORE.getDailyReflection(dateStr);
+    if (existing) textarea.value = existing;
+
+    saveBtn.addEventListener('click', () => {
+      AUREN_STORE.saveDailyReflection(dateStr, textarea.value);
+      savedMsg.textContent = 'Saved.';
+      setTimeout(() => { savedMsg.textContent = ''; }, 2000);
+    });
   }
 
   // ─── Share ──────────────────────────────────────────────────────────────────
