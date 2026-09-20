@@ -7,7 +7,7 @@ const AUREN_APP = (() => {
 
   // ─── State ──────────────────────────────────────────────────────────────────
   let state = {
-    view: 'landing',          // 'landing' | 'topic' | 'question' | 'spread' | 'ritual' | 'reading' | 'results' | 'daily' | 'yesno' | 'yesno-result' | 'history' | 'daily-history' | 'daily-card-detail'
+    view: 'landing',          // 'landing' | 'topic' | 'question' | 'spread' | 'ritual' | 'reading' | 'results' | 'daily' | 'yesno' | 'yesno-result' | 'history' | 'daily-history' | 'daily-card-detail' | 'library' | 'card-detail'
     topic: null,              // 'general'|'love'|'career'|'money'|'relationships'|'growth'|'none'
     question: '',             // optional user question (sanitized on display)
     spreadId: null,           // 1|3|5|7|9
@@ -17,6 +17,9 @@ const AUREN_APP = (() => {
     yesnoCard: null,          // {card, orientation, revealed}
     savedReadingId: null,     // id of the saved reading being viewed from history
     viewingDailyDate: null,   // YYYY-MM-DD string when viewing a past daily card
+    viewingCardId: null,      // card id when viewing a card detail page
+    libraryFilter: 'all',     // 'all'|'major'|'wands'|'cups'|'swords'|'pentacles'
+    librarySearch: '',        // current search query in library
     sessionId: 0,             // incremented per reading to prevent stale callbacks
     flipLocks: new Set(),     // card indices currently animating
     reducedMotion: false
@@ -102,7 +105,8 @@ const AUREN_APP = (() => {
   const HISTORY_VIEWS = new Set([
     'landing', 'topic', 'question', 'spread', 'ritual',
     'reading', 'results', 'daily', 'yesno', 'yesno-result',
-    'history', 'daily-history', 'daily-card-detail'
+    'history', 'daily-history', 'daily-card-detail',
+    'library', 'card-detail'
   ]);
 
   function captureHistoryState(viewName) {
@@ -114,6 +118,9 @@ const AUREN_APP = (() => {
       quickReadingId: state.quickReadingId,
       savedReadingId: state.savedReadingId,
       viewingDailyDate: state.viewingDailyDate,
+      viewingCardId: state.viewingCardId,
+      libraryFilter: state.libraryFilter,
+      librarySearch: state.librarySearch,
       // Serialise cards as plain objects (Set/functions can't survive JSON)
       drawnCards: state.drawnCards.map(dc => ({
         card: dc.card,
@@ -149,6 +156,9 @@ const AUREN_APP = (() => {
     state.yesnoCard         = saved.yesnoCard        || null;
     state.savedReadingId    = saved.savedReadingId   || null;
     state.viewingDailyDate  = saved.viewingDailyDate || null;
+    state.viewingCardId     = saved.viewingCardId    || null;
+    state.libraryFilter     = saved.libraryFilter    || 'all';
+    state.librarySearch     = saved.librarySearch    || '';
     state.flipLocks         = new Set();
   }
 
@@ -232,6 +242,8 @@ const AUREN_APP = (() => {
         case 'history':          renderHistory(root); break;
         case 'daily-history':    renderDailyHistory(root); break;
         case 'daily-card-detail':renderDailyCardDetail(root); break;
+        case 'library':          renderLibrary(root); break;
+        case 'card-detail':      renderCardDetail(root); break;
         default:                 renderLanding(root);
       }
       root.classList.remove('view-transitioning');
@@ -284,6 +296,8 @@ const AUREN_APP = (() => {
             <button class="btn-text-link" id="btn-your-readings" aria-label="View your saved readings">Your Readings</button>
             <span class="landing-history-sep">·</span>
             <button class="btn-text-link" id="btn-daily-history" aria-label="View previous daily cards">Previous Cards</button>
+            <span class="landing-history-sep">·</span>
+            <button class="btn-text-link" id="btn-library" aria-label="Explore all 78 tarot cards">Explore the Cards</button>
           </div>
         </div>
       </section>
@@ -293,6 +307,11 @@ const AUREN_APP = (() => {
     document.getElementById('btn-yesno').addEventListener('click', () => navigate('yesno'));
     document.getElementById('btn-your-readings').addEventListener('click', () => navigate('history'));
     document.getElementById('btn-daily-history').addEventListener('click', () => navigate('daily-history'));
+    document.getElementById('btn-library').addEventListener('click', () => {
+      state.libraryFilter = 'all';
+      state.librarySearch = '';
+      navigate('library');
+    });
     root.querySelectorAll('.quick-reading-card').forEach(btn => {
       btn.addEventListener('click', () => {
         const qr = QUICK_READINGS.find(q => q.id === btn.dataset.quick);
@@ -2007,6 +2026,189 @@ const AUREN_APP = (() => {
         } catch(e) {}
       });
     }
+  }
+
+  // ─── Library ────────────────────────────────────────────────────────────────
+  function renderLibrary(root) {
+    const SUIT_FILTERS = [
+      { id: 'all',       label: 'All Cards' },
+      { id: 'major',     label: 'Major Arcana' },
+      { id: 'wands',     label: 'Wands' },
+      { id: 'cups',      label: 'Cups' },
+      { id: 'swords',    label: 'Swords' },
+      { id: 'pentacles', label: 'Pentacles' }
+    ];
+
+    const filterChips = SUIT_FILTERS.map(f => `
+      <button class="library-filter-chip${state.libraryFilter === f.id ? ' active' : ''}" data-filter="${f.id}" aria-pressed="${state.libraryFilter === f.id}">${f.label}</button>
+    `).join('');
+
+    root.innerHTML = `
+      <section class="view-library" aria-label="Explore all 78 tarot cards">
+        <div class="view-header">
+          <button class="btn-back" id="btn-back-library" aria-label="Go back">← Back</button>
+          <h2 class="view-title">Explore the Cards</h2>
+          <p class="view-sub">All 78 cards of the tarot. Search, filter, and explore.</p>
+        </div>
+        <div class="library-controls">
+          <div class="library-search-wrap">
+            <input class="library-search" id="library-search" type="search" placeholder="Search by name or keyword…" aria-label="Search cards" autocomplete="off" value="${escapeHtml(state.librarySearch)}">
+          </div>
+          <div class="library-filters" role="group" aria-label="Filter by arcana or suit">
+            ${filterChips}
+          </div>
+        </div>
+        <div class="library-grid" id="library-grid" aria-live="polite"></div>
+        <p class="library-empty" id="library-empty" hidden>No cards match your search.</p>
+      </section>
+    `;
+
+    document.getElementById('btn-back-library').addEventListener('click', () => history.back());
+
+    const searchEl = document.getElementById('library-search');
+    searchEl.addEventListener('input', () => {
+      state.librarySearch = searchEl.value;
+      _renderLibraryGrid();
+    });
+
+    root.querySelectorAll('.library-filter-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.libraryFilter = btn.dataset.filter;
+        root.querySelectorAll('.library-filter-chip').forEach(b => {
+          b.classList.toggle('active', b.dataset.filter === state.libraryFilter);
+          b.setAttribute('aria-pressed', String(b.dataset.filter === state.libraryFilter));
+        });
+        _renderLibraryGrid();
+      });
+    });
+
+    _renderLibraryGrid();
+  }
+
+  function _filteredCards() {
+    const q = state.librarySearch.trim().toLowerCase();
+    return TAROT_DECK.filter(card => {
+      const filterMatch =
+        state.libraryFilter === 'all' ||
+        (state.libraryFilter === 'major' && card.arcana === 'major') ||
+        card.suit === state.libraryFilter;
+      if (!filterMatch) return false;
+      if (!q) return true;
+      return (
+        card.name.toLowerCase().includes(q) ||
+        (card.suit || '').includes(q) ||
+        card.uprightKeywords.some(k => k.toLowerCase().includes(q)) ||
+        card.reversedKeywords.some(k => k.toLowerCase().includes(q))
+      );
+    });
+  }
+
+  function _renderLibraryGrid() {
+    const grid = document.getElementById('library-grid');
+    const empty = document.getElementById('library-empty');
+    if (!grid) return;
+    const cards = _filteredCards();
+    empty.hidden = cards.length > 0;
+    grid.innerHTML = cards.map(card => {
+      const img = `assets/cards/${card.id}.jpg`;
+      const arcanaLabel = card.arcana === 'major' ? 'Major Arcana' : `${card.suit ? card.suit.charAt(0).toUpperCase() + card.suit.slice(1) : ''} · Minor`;
+      return `
+        <button class="library-card-tile" data-card-id="${card.id}" aria-label="View ${card.name}">
+          <div class="library-card-img-wrap">
+            <img src="${img}" alt="${escapeHtml(card.name)}" class="library-card-img" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="library-card-img-fallback" style="display:none">${card.symbol || '✦'}</div>
+          </div>
+          <div class="library-card-info">
+            <p class="library-card-name">${escapeHtml(card.name)}</p>
+            <p class="library-card-arcana">${arcanaLabel}</p>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.library-card-tile').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.viewingCardId = btn.dataset.cardId;
+        navigate('card-detail');
+      });
+    });
+  }
+
+  // ─── Card Detail ─────────────────────────────────────────────────────────────
+  function renderCardDetail(root) {
+    const card = TAROT_DECK.find(c => c.id === state.viewingCardId);
+    if (!card) { navigate('library'); return; }
+
+    const TOPICS_LIST = [
+      { key: 'general',       label: 'General' },
+      { key: 'love',          label: 'Love' },
+      { key: 'career',        label: 'Career' },
+      { key: 'money',         label: 'Money' },
+      { key: 'relationships', label: 'Relationships' },
+      { key: 'growth',        label: 'Growth' }
+    ];
+
+    const arcanaLabel = card.arcana === 'major'
+      ? `Major Arcana · ${card.number !== null ? card.number : ''}`
+      : `${card.suit ? card.suit.charAt(0).toUpperCase() + card.suit.slice(1) : ''} · Minor Arcana`;
+
+    const uprightKw = card.uprightKeywords.join(' · ');
+    const reversedKw = card.reversedKeywords.join(' · ');
+
+    const topicRows = TOPICS_LIST.map(t => `
+      <div class="card-detail-topic-row">
+        <h4 class="card-detail-topic-heading">${t.label}</h4>
+        <div class="card-detail-topic-cols">
+          <div class="card-detail-col">
+            <p class="card-detail-col-label">Upright</p>
+            <p class="card-detail-col-text">${escapeHtml(card.upright[t.key] || '')}</p>
+          </div>
+          <div class="card-detail-col">
+            <p class="card-detail-col-label card-detail-col-label--reversed">Reversed</p>
+            <p class="card-detail-col-text">${escapeHtml(card.reversed[t.key] || '')}</p>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    root.innerHTML = `
+      <section class="view-card-detail" aria-label="${escapeHtml(card.name)} tarot card meanings">
+        <div class="view-header">
+          <button class="btn-back" id="btn-back-card-detail" aria-label="Back to card library">← Back</button>
+        </div>
+        <div class="card-detail-hero">
+          <div class="card-detail-img-wrap">
+            <img src="assets/cards/${card.id}.jpg" alt="${escapeHtml(card.name)}" class="card-detail-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="card-detail-img-fallback" style="display:none">${card.symbol || '✦'}</div>
+          </div>
+          <div class="card-detail-header">
+            <p class="card-detail-arcana">${arcanaLabel}</p>
+            <h2 class="card-detail-name">${escapeHtml(card.name)}</h2>
+            <div class="card-detail-keywords">
+              <p class="card-detail-kw-row"><span class="card-detail-kw-label">Upright</span> ${escapeHtml(uprightKw)}</p>
+              <p class="card-detail-kw-row card-detail-kw-row--reversed"><span class="card-detail-kw-label">Reversed</span> ${escapeHtml(reversedKw)}</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-detail-body">
+          <div class="card-detail-topics">
+            ${topicRows}
+          </div>
+          <div class="card-detail-cta">
+            <p class="card-detail-cta-text">Ready to see ${escapeHtml(card.name)} in a reading?</p>
+            <button class="btn btn-primary" id="btn-card-detail-read" aria-label="Start a reading">Begin a Reading</button>
+          </div>
+        </div>
+      </section>
+    `;
+
+    document.getElementById('btn-back-card-detail').addEventListener('click', () => history.back());
+    document.getElementById('btn-card-detail-read').addEventListener('click', () => {
+      state.sessionId++;
+      state.question = '';
+      state.quickReadingId = null;
+      navigate('topic');
+    });
   }
 
   function buildShareText() {
